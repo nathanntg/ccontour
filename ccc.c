@@ -84,7 +84,7 @@ static void ingestCCTimescaleAngle(struct CCTimescaleAngle *ccta, const double *
         }
         
         // adjust by angle
-        // TODO: optimize via switch case and 
+        // TODO: optimize via switch case and
         gx = (cur[i] - last[i]) * ccta->grad_x;
         gy = (i > 0 ? (cur[i] - cur[i - 1]) * ccta->grad_y : 0);
         
@@ -131,10 +131,28 @@ static void windowSamples(const double *signal, const double *window, double *si
 	}
 }
 
-static mxArray *ccc(const double *signal, const t_len signal_len, const double signal_fs) {
-    mxArray *ret; /* return array pointer */
+struct ConsensusContourSize
+{
+    t_len rows;
+    t_len cols;
+    t_len bytes;
+};
+
+static struct ConsensusContourSize cccSize(const t_len signal_len) {
+    const t_len ccn = fft_length / 2;
+    const t_len ccm = 1 + (signal_len - fft_length) / (fft_length - fft_overlap);
+    struct ConsensusContourSize ret;
+    
+    ret.rows = ccn;
+    ret.cols = ccm;
+    ret.bytes = sizeof(double) * ccn * ccm;
+    
+    return ret;
+}
+
+static void ccc(const double *signal, const t_len signal_len, const double signal_fs, double *consensus_contours) {
     FFTSetupD fft_setup;
-    double *consensus_contours, *fft_window;
+    double *fft_window;
     double *signal_windowed;
     double *power;
     double power_scale = 2.0, two_pi = 2 * M_PI;
@@ -144,14 +162,7 @@ static mxArray *ccc(const double *signal, const t_len signal_len, const double s
     t_len i, j, k;
     
     /* output dimensions */
-    const t_len ccn = fft_length / 2;
-    const t_len ccm = 1 + (signal_len - fft_length) / (fft_length - fft_overlap);
-    
-    /*  set the output pointer to the output matrix */
-    ret = mxCreateDoubleMatrix((size_t)ccn, (size_t)ccm, mxREAL);
-    
-    /*  create a C pointer to the output matrix */
-    consensus_contours = mxGetPr(ret);
+    const struct ConsensusContourSize dim = cccSize(signal_len);
     
     /* PREP WORK: fill timescales and angles */
     for (i = 0; i < N_ANGLES; ++i) {
@@ -198,7 +209,7 @@ static mxArray *ccc(const double *signal, const t_len signal_len, const double s
     }
     
     /* STEP 2: spectrogram columns */
-    for (i = 0; i < ccm; ++i) {
+    for (i = 0; i < dim.cols; ++i) {
     	// window
     	windowSamples(signal + i * (fft_length - fft_overlap), fft_window, signal_windowed);
     	
@@ -246,8 +257,6 @@ static mxArray *ccc(const double *signal, const t_len signal_len, const double s
             destroyCCTimescaleAngle(&ccta[i * N_ANGLES + j]);
         }
     }
-    
-    return ret;
 }
 
 static double getScalar(const mxArray *in, const char *err_id, const char *err_str) {
@@ -262,7 +271,7 @@ static double getScalar(const mxArray *in, const char *err_id, const char *err_s
 
 /* the gateway function */
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-    double *s;
+    double *s, *t;
     size_t sn, sm, sl;
     double fs;
     
@@ -296,7 +305,14 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     fs = getScalar(prhs[1], "MATLAB:ccc:invalidInput", "Sample rate must be a scalar.");
     
     /* OUTPUT 1: matrix, consensus contours */
+    const struct ConsensusContourSize dim = cccSize((t_len)sl);
+    
+    /*  set the output pointer to the output matrix */
+    plhs[0] = mxCreateDoubleMatrix((size_t)dim.rows, (size_t)dim.cols, mxREAL);
+    
+    /*  create a C pointer to the output matrix */
+    t = mxGetPr(plhs[0]);
     
     /*  call the C subroutine */
-    plhs[0] = ccc(s, (t_len)sl, fs);
+    ccc(s, (t_len)sl, fs, t);
 }
