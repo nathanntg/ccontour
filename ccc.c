@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
 #include <float.h>
 #include <string.h>
 #include <Accelerate/Accelerate.h>
@@ -161,7 +162,7 @@ static void addConsensusToContours(const t_len fft_length_half, const double *co
 static void ccc(const double *signal, const t_len signal_len, const double signal_fs, double *consensus_contours) {
     FFTSetupD fft_setup;
     double *fft_window, *signal_windowed, *power;
-    double *consensus, *consensus_cur;
+    double *consensus, *consensus_cur, *consensus_pow;
     double power_scale = 2.0, two_pi = 2 * M_PI;
     DSPDoubleSplitComplex fft_temporary, fft_output;
     DSPDoubleSplitComplex p_exp, p_der, p_ratio; // pointers into the fft_output for convience
@@ -212,6 +213,9 @@ static void ccc(const double *signal, const t_len signal_len, const double signa
     /* might be able to use singles? */
     consensus = malloc(sizeof(double) * fft_length_half * N_TIMESCALES * N_ANGLES);
     consensus_cur = malloc(sizeof(double) * fft_length_half);
+    if (pow_weight) {
+        consensus_pow = malloc(sizeof(double) * fft_length_half);
+    }
     
     /* fill window */
     fillFftWindow(fft_window, signal_fs);
@@ -223,8 +227,12 @@ static void ccc(const double *signal, const t_len signal_len, const double signa
         }
     }
     
+    clock_t begin, end;
+    
     /* STEP 2: spectrogram columns */
     for (i = 0; i < dim.cols; ++i) {
+        // begin = clock();
+        
     	// window
     	windowSamples(signal + i * (fft_length - fft_overlap), fft_window, signal_windowed);
     	
@@ -255,6 +263,10 @@ static void ccc(const double *signal, const t_len signal_len, const double signa
         
         // look for consensus
         for (j = 0; j < (N_TIMESCALES - 1); ++j) {
+            if (pow_weight) {
+                vDSP_vclrD(consensus_pow, 1, fft_length_half);
+            }
+            
             for (k = 0; k < N_ANGLES; ++k) {
                 // start with consensus / angle
                 memcpy(consensus_cur, consensus + (j * N_ANGLES + k) * fft_length_half, sizeof(double) * fft_length_half);
@@ -264,9 +276,25 @@ static void ccc(const double *signal, const t_len signal_len, const double signa
                 vDSP_vaddD(consensus_cur, 1, consensus + (j * N_ANGLES + (0 == k ? N_ANGLES - 1 : k - 1)) * fft_length_half, 1, consensus_cur, 1, fft_length_half);
                 
                 // add to contours
-                addConsensusToContours(fft_length_half, consensus_cur, consensus_contours + i * fft_length_half);
+                if (pow_weight) {
+                    addConsensusToContours(fft_length_half, consensus_cur, consensus_pow);
+                }
+                else {
+                    addConsensusToContours(fft_length_half, consensus_cur, consensus_contours + i * fft_length_half);
+                }
+            }
+            
+            if (pow_weight) {
+                // scale by power
+                vDSP_vmulD(consensus_pow, 1, power + j * fft_length_half, 1, consensus_pow, 1, fft_length_half);
+                
+                // add to output
+                vDSP_vaddD(consensus_contours + i * fft_length_half, 1, consensus_pow, 1, consensus_contours + i * fft_length_half, 1, fft_length_half);
             }
         }
+        
+        // end = clock();
+        // printf("%f\n", (double)(end - begin) / CLOCKS_PER_SEC);
     }
     
     /* CLEAN UP */
@@ -279,6 +307,9 @@ static void ccc(const double *signal, const t_len signal_len, const double signa
     free(power);
     free(consensus);
     free(consensus_cur);
+    if (pow_weight) {
+        free(consensus_pow);
+    }
     vDSP_destroy_fftsetupD(fft_setup);
     
     /* destroy timescale angle structures */
