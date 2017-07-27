@@ -19,8 +19,10 @@ int main(int argc, const char* argv[]) {
 	
 	clock_t begin, end;
 	
-	const struct ConsensusContourSize dim = cccSize(SIGNAL_LEN);
-	out = malloc(dim.bytes);
+	CCCSetup ccc_setup = createCCCSetup(1024, 1005, SIGNAL_FS, true);
+	
+	const struct ConsensusContourSize dim = cccSize(ccc_setup, SIGNAL_LEN);
+	out = calloc(dim.rows * dim.cols, sizeof(double));
 	
 	for (i = 0; i < iter; ++i) {
 		for (j = 0; j < SIGNAL_LEN; ++j) {
@@ -28,7 +30,7 @@ int main(int argc, const char* argv[]) {
 		}
 		
 		begin = clock();
-		ccc(&signal[0], SIGNAL_LEN, SIGNAL_FS, out);
+		ccc(ccc_setup, dim, &signal[0], out);
 		end = clock();
 		
 		tm += (double)(end - begin) / CLOCKS_PER_SEC;
@@ -37,6 +39,7 @@ int main(int argc, const char* argv[]) {
 	printf("Avg Time: %.3fms\n", tm * 1000 / (double)iter);
 	
 	free(out);
+	destroyCCCSetup(ccc_setup);
 	
 	return 0;
 }

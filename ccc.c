@@ -39,12 +39,6 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
     sl = sn > 1 ? sn : sm;
     
-    /* figure out contour size */
-    const struct ConsensusContourSize dim = cccSize((t_len)sl);
-    if (dim.rows == 0) {
-        mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "Input vector must be at longer than FFT window.");
-    }
-    
     /*  create a pointer to the input vector s */
     s = mxGetPr(prhs[0]);
     
@@ -52,6 +46,17 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     
     /*  get the sample rate */
     fs = getScalar(prhs[1], "MATLAB:ccc:invalidInput", "Sample rate must be a scalar.");
+    
+    /* PREP WORK */
+    
+    /* setup */
+    CCCSetup ccc_setup = createCCCSetup(1024, 1005, fs, true);
+    
+    /* figure out contour size */
+    const struct ConsensusContourSize dim = cccSize(ccc_setup, (unsigned long)sl);
+    if (dim.rows == 0) {
+        mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "Input vector must be at longer than FFT window.");
+    }
     
     /* OUTPUT 1: matrix, consensus contours */
     
@@ -62,5 +67,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     t = mxGetPr(plhs[0]);
     
     /*  call the C subroutine */
-    ccc(s, (t_len)sl, fs, t);
+    ccc(ccc_setup, dim, s, t);
+    
+    /* clean up */
+    destroyCCCSetup(ccc_setup);
 }
