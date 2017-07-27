@@ -160,6 +160,11 @@ static void addConsensusToContours(const t_len fft_length_half, const double *co
     }
 }
 
+static t_len fftSize(const t_len length) {
+    double size = ceil(log2((double)length));
+    return (t_len)size;
+}
+
 void ccc(const double *signal, const t_len signal_len, const double signal_fs, double *consensus_contours) {
     FFTSetupD fft_setup;
     double *fft_window, *signal_windowed, *power;
@@ -186,7 +191,7 @@ void ccc(const double *signal, const t_len signal_len, const double signal_fs, d
     
     /* STEP 1: spectrogram, build windows and fft */
     const t_len fft_length_half = fft_length / 2;
-    const t_len fft_size = (t_len)ceil(log2((double)fft_length));
+    const t_len fft_size = fftSize(fft_length);
     assert((1 << fft_size) == fft_length); // should be power of 2
     
     fft_setup = vDSP_create_fftsetupD(fft_size, kFFTRadix2);
@@ -217,6 +222,9 @@ void ccc(const double *signal, const t_len signal_len, const double signal_fs, d
     if (pow_weight) {
         consensus_pow = malloc(sizeof(double) * fft_length_half);
     }
+    else {
+        consensus_pow = NULL;
+    }
     
     /* fill window */
     fillFftWindow(fft_window, signal_fs);
@@ -228,11 +236,15 @@ void ccc(const double *signal, const t_len signal_len, const double signal_fs, d
         }
     }
     
+#ifdef TIMING
     clock_t begin, end;
+#endif
     
     /* STEP 2: spectrogram columns */
     for (i = 0; i < dim.cols; ++i) {
-        // begin = clock();
+#ifdef TIMING
+        begin = clock();
+#endif
         
     	// window
     	windowSamples(signal + i * (fft_length - fft_overlap), fft_window, signal_windowed);
@@ -294,8 +306,10 @@ void ccc(const double *signal, const t_len signal_len, const double signal_fs, d
             }
         }
         
-        // end = clock();
-        // printf("%f\n", (double)(end - begin) / CLOCKS_PER_SEC);
+#ifdef TIMING
+        end = clock();
+        printf("%f\n", (double)(end - begin) / CLOCKS_PER_SEC);
+#endif
     }
     
     /* CLEAN UP */
