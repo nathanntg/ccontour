@@ -47,7 +47,7 @@ end
 fprintf('Compiling ccontour functions...\n');
 
 c = {};
-cf = {};
+cf = {'-DPRECISION=2'};
 
 % show warnings
 if warnings
@@ -74,9 +74,14 @@ if ismac
 end
 
 % call mex functions
-functions = {'ccontour'};
+functions = {{'ccontour.c', 'consensus_contour.c'}};
 for j = 1:length(functions)
-    fprintf('%s\n', functions{j});
-    d = [c [functions{j} '.c']];
+    if iscell(functions{j})
+        fprintf('%s\n', functions{j}{1});
+        d = [c functions{j}];
+    else
+        fprintf('%s\n', functions{j});
+        d = [c [functions{j} '.c']];
+    end
     mex(d{:});
 end

@@ -4,7 +4,9 @@
 
 #include <Accelerate/Accelerate.h>
 
+#ifndef PRECISION
 #define PRECISION 1
+#endif
 
 #if PRECISION == 2
 typedef double t_real;
