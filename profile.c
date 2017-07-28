@@ -13,8 +13,8 @@
 int main(int argc, const char* argv[]) {
 	int iter = 10;
 	int i, j;
-	double signal[SIGNAL_LEN];
-	double *out;
+	t_real signal[SIGNAL_LEN];
+	t_real *out;
 	double tm = 0;
 	
 	clock_t begin, end;
@@ -22,11 +22,11 @@ int main(int argc, const char* argv[]) {
 	CCCSetup ccc_setup = createCCCSetup(1024, 1005, SIGNAL_FS, true);
 	
 	const struct ConsensusContourSize dim = cccSize(ccc_setup, SIGNAL_LEN);
-	out = calloc(dim.rows * dim.cols, sizeof(double));
+	out = calloc(dim.rows * dim.cols, sizeof(t_real));
 	
 	for (i = 0; i < iter; ++i) {
 		for (j = 0; j < SIGNAL_LEN; ++j) {
-			signal[j] = (double)rand() / RAND_MAX;
+			signal[j] = (t_real)rand() / RAND_MAX;
 		}
 		
 		begin = clock();
