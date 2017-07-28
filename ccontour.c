@@ -76,14 +76,14 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         t = mxGetPr(plhs[0]);
         
         /*  call the C subroutine */
-        cccSpectogramD(ccc_setup, dim, s, t);
+        cccSpectrogramD(ccc_setup, dim, s, t);
         
         /* clean up */
         destroyCCCSetupD(ccc_setup);
     }
     else {
         /* setup */
-        CCCSetup ccc_setup = createCCCSetup(1024, 1005, fs, true);
+        CCCSetup ccc_setup = createCCCSetup(1024, 1005, (float)fs, true);
         
         /* figure out contour size */
         const struct ConsensusContourSize dim = cccSize(ccc_setup, (unsigned long)sl);
@@ -100,7 +100,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         t = mxGetPr(plhs[0]);
         
         /*  call the C subroutine */
-        cccSpectogram(ccc_setup, dim, s, t);
+        cccSpectrogram(ccc_setup, dim, s, t);
         
         /* clean up */
         destroyCCCSetup(ccc_setup);

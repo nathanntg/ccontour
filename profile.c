@@ -30,7 +30,7 @@ static void profileSingle(const int iter) {
         }
         
         begin = clock();
-        cccSpectogram(ccc_setup, dim, &signal[0], out);
+        cccSpectrogram(ccc_setup, dim, &signal[0], out);
         end = clock();
         
         tm += (double)(end - begin) / CLOCKS_PER_SEC;
@@ -62,7 +62,7 @@ static void profileDouble(const int iter) {
         }
         
         begin = clock();
-        cccSpectogramD(ccc_setup, dim, &signal[0], out);
+        cccSpectrogramD(ccc_setup, dim, &signal[0], out);
         end = clock();
         
         tm += (double)(end - begin) / CLOCKS_PER_SEC;

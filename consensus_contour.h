@@ -25,7 +25,7 @@ struct ConsensusContourSize cccSize(const CCCSetup setup, const unsigned long si
 
 /* actual algorithm */
 void cccColumn(const CCCSetup setup, const float *signal, float *contour);
-void cccSpectogram(const CCCSetup setup, const struct ConsensusContourSize dim, const float *signal, float *consensus_contours);
+void cccSpectrogram(const CCCSetup setup, const struct ConsensusContourSize dim, const float *signal, float *consensus_contours);
 
 /* DOUBLE */
 
@@ -39,4 +39,4 @@ struct ConsensusContourSize cccSizeD(const CCCSetupD setup, const unsigned long 
 
 /* actual algorithm */
 void cccColumnD(const CCCSetupD setup, const double *signal, double *contour);
-void cccSpectogramD(const CCCSetupD setup, const struct ConsensusContourSize dim, const double *signal, double *consensus_contours);
+void cccSpectrogramD(const CCCSetupD setup, const struct ConsensusContourSize dim, const double *signal, double *consensus_contours);

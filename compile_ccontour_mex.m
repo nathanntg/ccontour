@@ -47,11 +47,11 @@ end
 fprintf('Compiling ccontour functions...\n');
 
 c = {};
-cf = {'-DPRECISION=2'};
+cf = {};
 
 % show warnings
 if warnings
-    cf{end + 1} = '-Weverything"';
+    cf{end + 1} = '-Weverything';
 end
 
 % enable debugging

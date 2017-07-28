@@ -342,7 +342,7 @@ void TYPE(cccColumn)(const TYPE(CCCSetup) setup, const REAL *signal, REAL *conse
     TYPE(buildColumn)(setup, signal, consensus_contour);
 }
 
-void TYPE(cccSpectogram)(const TYPE(CCCSetup) setup, const struct ConsensusContourSize dim, const REAL *signal, REAL *consensus_contours) {
+void TYPE(cccSpectrogram)(const TYPE(CCCSetup) setup, const struct ConsensusContourSize dim, const REAL *signal, REAL *consensus_contours) {
     t_len i;
     
     /* clear output */
