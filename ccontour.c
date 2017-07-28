@@ -24,7 +24,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     /* ARGUMENT 1: vector, signal */
     
     /*  check for proper number of arguments */
-    if (nrhs != 2 && nrhs != 3) {
+    if (nrhs != 2) {
         mexErrMsgIdAndTxt("MATLAB:ccc:invalidNumInputs", "Two inputs required.");
     }
     if (nlhs != 1) {
