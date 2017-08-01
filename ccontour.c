@@ -59,7 +59,10 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     
     if (is_double) {
         /* setup */
-        CCCSetupD ccc_setup = createCCCSetupD(1024, 1005, fs, true);
+        CCCConfigD ccc_config = createCCCConfigD();
+        cccConfigSetSampleRateD(ccc_config, fs);
+        CCCSetupD ccc_setup = createCCCSetupD(ccc_config);
+        destroyCCCConfigD(ccc_config);
         
         /* figure out contour size */
         const struct ConsensusContourSize dim = cccSizeD(ccc_setup, (unsigned long)sl);
@@ -83,7 +86,10 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
     else {
         /* setup */
-        CCCSetup ccc_setup = createCCCSetup(1024, 1005, (float)fs, true);
+        CCCConfig ccc_config = createCCCConfig();
+        cccConfigSetSampleRate(ccc_config, (float)fs);
+        CCCSetup ccc_setup = createCCCSetup(ccc_config);
+        destroyCCCConfig(ccc_config);
         
         /* figure out contour size */
         const struct ConsensusContourSize dim = cccSize(ccc_setup, (unsigned long)sl);

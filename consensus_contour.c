@@ -8,10 +8,10 @@
 #include <time.h>
 #include <float.h>
 #include <string.h>
+#include <Accelerate/Accelerate.h>
 #include "consensus_contour.h"
 
-#define N_ANGLES 8
-#define N_TIMESCALES 9
+/* COMMON */
 
 typedef vDSP_Stride t_stride;
 typedef vDSP_Length t_len;
@@ -21,7 +21,14 @@ static t_len fftSize(const t_len length) {
     return (t_len)size;
 }
 
-/* float */
+static void *allocAndCopy(const void *source, size_t len) {
+    // allocate new memory
+    void *dest = malloc(len);
+    memcpy(dest, source, len);
+    return dest;
+}
+
+/* FLOAT */
 
 #define REAL float
 #define REAL_SPLIT_COMPLEX DSPSplitComplex
@@ -42,7 +49,7 @@ static t_len fftSize(const t_len length) {
 #undef CMATH
 #undef TYPE
 
-/* double */
+/* DOUBLE */
 
 #define REAL double
 #define REAL_SPLIT_COMPLEX DSPDoubleSplitComplex
