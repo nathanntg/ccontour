@@ -24,13 +24,13 @@ void cccConfigSetFFTLength(CCCConfig config, unsigned long fft_length);
 void cccConfigSetFFTOverlap(CCCConfig config, unsigned long fft_overlap);
 void cccConfigSetWeightByPower(CCCConfig config, bool pow_weight);
 void cccConfigSetSampleRate(CCCConfig config, float fs);
-void cccConfigSetTimescales(CCCConfig config, unsigned long num_timescales, float timescales[]);
-void cccConfigSetAngles(CCCConfig config, unsigned long num_angles, float angles[]);
+void cccConfigSetTimescales(CCCConfig config, unsigned long num_timescales, const float timescales[]);
+void cccConfigSetAngles(CCCConfig config, unsigned long num_angles, const float angles[]);
 void destroyCCCConfig(CCCConfig config);
 
 /* setup */
 typedef struct OpaqueCCCSetup *CCCSetup;
-CCCSetup createCCCSetup(CCCConfig config);
+CCCSetup createCCCSetup(const CCCConfig config);
 void destroyCCCSetup(CCCSetup setup);
 
 /* sizing */
@@ -49,13 +49,13 @@ void cccConfigSetFFTLengthD(CCCConfigD config, unsigned long fft_length);
 void cccConfigSetFFTOverlapD(CCCConfigD config, unsigned long fft_overlap);
 void cccConfigSetWeightByPowerD(CCCConfigD config, bool pow_weight);
 void cccConfigSetSampleRateD(CCCConfigD config, double fs);
-void cccConfigSetTimescalesD(CCCConfigD config, unsigned long num_timescales, double timescales[]);
-void cccConfigSetAnglesD(CCCConfigD config, unsigned long num_angles, double angles[]);
+void cccConfigSetTimescalesD(CCCConfigD config, unsigned long num_timescales, const double timescales[]);
+void cccConfigSetAnglesD(CCCConfigD config, unsigned long num_angles, const double angles[]);
 void destroyCCCConfigD(CCCConfigD config);
 
 /* setup */
 typedef struct OpaqueCCCSetupD *CCCSetupD;
-CCCSetupD createCCCSetupD(CCCConfigD config);
+CCCSetupD createCCCSetupD(const CCCConfigD config);
 void destroyCCCSetupD(CCCSetupD setup);
 
 /* sizing */

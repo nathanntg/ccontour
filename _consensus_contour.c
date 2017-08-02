@@ -53,23 +53,23 @@ TYPE(CCCConfig) TYPE(createCCCConfig)() {
     return ret;
 }
 
-void TYPE(cccConfigSetFFTLength)(TYPE(CCCConfig) config, t_len fft_length) {
+void TYPE(cccConfigSetFFTLength)(TYPE(CCCConfig) config, const t_len fft_length) {
     config->fft_length = fft_length;
 }
 
-void TYPE(cccConfigSetFFTOverlap)(TYPE(CCCConfig) config, t_len fft_overlap) {
+void TYPE(cccConfigSetFFTOverlap)(TYPE(CCCConfig) config, const t_len fft_overlap) {
     config->fft_overlap = fft_overlap;
 }
 
-void TYPE(cccConfigSetWeightByPower)(TYPE(CCCConfig) config, bool pow_weight) {
+void TYPE(cccConfigSetWeightByPower)(TYPE(CCCConfig) config, const bool pow_weight) {
     config->pow_weight = pow_weight;
 }
 
-void TYPE(cccConfigSetSampleRate)(TYPE(CCCConfig) config, REAL fs) {
+void TYPE(cccConfigSetSampleRate)(TYPE(CCCConfig) config, const REAL fs) {
     config->fs = fs;
 }
 
-void TYPE(cccConfigSetTimescales)(TYPE(CCCConfig) config, t_len num_timescales, REAL timescales[]) {
+void TYPE(cccConfigSetTimescales)(TYPE(CCCConfig) config, const t_len num_timescales, const REAL timescales[]) {
     // free old timescales
     free(config->timescales);
     
@@ -79,7 +79,7 @@ void TYPE(cccConfigSetTimescales)(TYPE(CCCConfig) config, t_len num_timescales, 
     memcpy(config->timescales, &timescales[0], sizeof(REAL) * config->num_timescales);
 }
 
-void TYPE(cccConfigSetAngles)(TYPE(CCCConfig) config, t_len num_angles, REAL angles[]) {
+void TYPE(cccConfigSetAngles)(TYPE(CCCConfig) config, const t_len num_angles, const REAL angles[]) {
     // free old timescales
     free(config->angles);
     
@@ -224,7 +224,7 @@ static void TYPE(fillFftWindow)(const TYPE(CCCSetup) setup) {
     }
 }
 
-TYPE(CCCSetup) TYPE(createCCCSetup)(TYPE(CCCConfig) config) {
+TYPE(CCCSetup) TYPE(createCCCSetup)(const TYPE(CCCConfig) config) {
     t_len i, j;
     
     /* allocate memory */
