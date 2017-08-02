@@ -2,6 +2,104 @@ static REAL TYPE(s_zero) = 0.0;
 static REAL TYPE(s_one) = 1.0;
 static REAL TYPE(s_two) = 2.0;
 
+/* configuration */
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
+
+struct TYPE(OpaqueCCCConfig) {
+    t_len fft_length;
+    t_len fft_overlap;
+    
+    bool pow_weight;
+    
+    REAL fs;
+    
+    t_len num_timescales;
+    REAL *timescales;
+    
+    t_len num_angles;
+    REAL *angles;
+};
+
+#pragma clang diagnostic pop
+
+TYPE(CCCConfig) TYPE(createCCCConfig)() {
+    t_len i;
+    
+    // allocate memory
+    TYPE(CCCConfig) ret = malloc(sizeof(struct TYPE(OpaqueCCCConfig)));
+    
+    // default fft parameters
+    ret->fft_length = 1024;
+    ret->fft_overlap = 1005;
+    ret->pow_weight = true;
+    ret->fs = 44100;
+    
+    // default timescales
+    ret->num_timescales = 9;
+    ret->timescales = malloc(sizeof(REAL) * ret->num_timescales);
+    for (i = 0; i < ret->num_timescales; ++i) {
+        ret->timescales[i] = CMATH(0.5) + CMATH(0.2) * (REAL)i;
+    }
+    
+    // default angles
+    ret->num_angles = 8;
+    ret->angles = malloc(sizeof(REAL) * ret->num_angles);
+    for (i = 0; i < ret->num_angles; ++i) {
+        ret->angles[i] = (REAL)M_PI * (REAL)(2 + i) / (REAL)ret->num_angles;
+    }
+    
+    return ret;
+}
+
+void TYPE(cccConfigSetFFTLength)(TYPE(CCCConfig) config, const t_len fft_length) {
+    config->fft_length = fft_length;
+}
+
+void TYPE(cccConfigSetFFTOverlap)(TYPE(CCCConfig) config, const t_len fft_overlap) {
+    config->fft_overlap = fft_overlap;
+}
+
+void TYPE(cccConfigSetWeightByPower)(TYPE(CCCConfig) config, const bool pow_weight) {
+    config->pow_weight = pow_weight;
+}
+
+void TYPE(cccConfigSetSampleRate)(TYPE(CCCConfig) config, const REAL fs) {
+    config->fs = fs;
+}
+
+void TYPE(cccConfigSetTimescales)(TYPE(CCCConfig) config, const t_len num_timescales, const REAL timescales[]) {
+    // free old timescales
+    free(config->timescales);
+    
+    // allocate new timescales
+    config->num_timescales = num_timescales;
+    config->timescales = malloc(sizeof(REAL) * config->num_timescales);
+    memcpy(config->timescales, &timescales[0], sizeof(REAL) * config->num_timescales);
+}
+
+void TYPE(cccConfigSetAngles)(TYPE(CCCConfig) config, const t_len num_angles, const REAL angles[]) {
+    // free old timescales
+    free(config->angles);
+    
+    // allocate new timescales
+    config->num_angles = num_angles;
+    config->angles = malloc(sizeof(REAL) * config->num_angles);
+    memcpy(config->angles, &angles[0], sizeof(REAL) * config->num_angles);
+}
+
+void TYPE(destroyCCCConfig)(TYPE(CCCConfig) config) {
+    /* free memory */
+    free(config->timescales);
+    free(config->angles);
+    
+    /* free memory for whole config */
+    free(config);
+}
+
+/* timescale angle */
+
 struct TYPE(CCTimescaleAngle)
 {
     t_len fft_length_half;
@@ -76,24 +174,13 @@ static void TYPE(addConsensusToContours)(const t_len fft_length_half, const REAL
     }
 }
 
-
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
 
 struct TYPE(OpaqueCCCSetup)
 {
-    /* parameters */
-    // cannot be changed
-    t_len fft_length; /* must be power of two */
-    t_len fft_overlap;
-    
-    // can be changed
-    bool pow_weight;
-    REAL fs;
-    
-    // currently not customizable
-    REAL angles[N_ANGLES]; /* radians */
-    REAL timescales[N_TIMESCALES]; /* ms */
+    /* config */
+    TYPE(struct OpaqueCCCConfig) config;
     
     /* internal data */
     t_len fft_length_half;
@@ -105,7 +192,7 @@ struct TYPE(OpaqueCCCSetup)
     REAL *consensus, *consensus_cur, *consensus_pow;
     REAL_SPLIT_COMPLEX fft_temporary, fft_output;
     REAL_SPLIT_COMPLEX p_exp, p_der, p_ratio; // pointers into the fft_output for convience
-    struct TYPE(CCTimescaleAngle) ta[N_TIMESCALES * N_ANGLES];
+    struct TYPE(CCTimescaleAngle) *ta;
 };
 
 #pragma clang diagnostic pop
@@ -115,14 +202,14 @@ static void TYPE(fillFftWindow)(const TYPE(CCCSetup) setup) {
     t_len index = 0;
     REAL timescale_samples;
     REAL w;
-    REAL twin, twin_offset = CMATH(0.5) + (CMATH(0.0) - (REAL)setup->fft_length) / CMATH(2.);
-    t_len index_offset = N_TIMESCALES * setup->fft_length;
+    REAL twin, twin_offset = CMATH(0.5) + (CMATH(0.0) - (REAL)setup->config.fft_length) / CMATH(2.);
+    t_len index_offset = setup->config.num_timescales * setup->config.fft_length;
     
-    for (i = 0; i < N_TIMESCALES; ++i) {
-        timescale_samples = setup->fs * setup->timescales[i] / CMATH(1000.0);
+    for (i = 0; i < setup->config.num_timescales; ++i) {
+        timescale_samples = setup->config.fs * setup->config.timescales[i] / CMATH(1000.0);
         
         /* TODO: could be heabily optimized using vvexp and such */
-        for (j = 0; j < setup->fft_length; ++j) {
+        for (j = 0; j < setup->config.fft_length; ++j) {
             twin = twin_offset + (REAL)j;
             w = CMATH(exp)(-CMATH(pow)(twin / timescale_samples, 2));
             
@@ -133,59 +220,50 @@ static void TYPE(fillFftWindow)(const TYPE(CCCSetup) setup) {
             setup->fft_window[index_offset + index + j] = CMATH(-2.0) * w * twin / CMATH(pow)(timescale_samples, 2);
         }
         
-        index += setup->fft_length;
+        index += setup->config.fft_length;
     }
 }
 
-TYPE(CCCSetup) TYPE(createCCCSetup)(t_len fft_length, t_len fft_overlap, REAL fs, bool pow_weight) {
+TYPE(CCCSetup) TYPE(createCCCSetup)(const TYPE(CCCConfig) config) {
     t_len i, j;
     
     /* allocate memory */
     TYPE(CCCSetup) ret = malloc(sizeof(struct TYPE(OpaqueCCCSetup)));
     
-    /* store parameters */
-    ret->fft_length = fft_length;
-    ret->fft_overlap = fft_overlap;
-    ret->pow_weight = pow_weight;
-    ret->fs = fs;
-    
-    /* fill timescales and angles */
-    for (i = 0; i < N_ANGLES; ++i) {
-        ret->angles[i] = (REAL)M_PI * (REAL)(2 + i) / N_ANGLES;
-    }
-    for (i = 0; i < N_TIMESCALES; ++i) {
-        ret->timescales[i] = CMATH(0.5) + CMATH(0.2) * (REAL)i;
-    }
+    /* store configuration, and copy pointers */
+    memcpy(&ret->config, config, sizeof(TYPE(struct OpaqueCCCConfig)));
+    ret->config.timescales = allocAndCopy(ret->config.timescales, sizeof(REAL) * ret->config.num_timescales);
+    ret->config.angles = allocAndCopy(ret->config.angles, sizeof(REAL) * ret->config.num_angles);
     
     /* STEP 1: spectrogram, build windows and fft */
-    ret->fft_length_half = fft_length / 2;
-    ret->fft_size = fftSize(fft_length);
-    assert((1 << ret->fft_size) == ret->fft_length); // should be power of 2
+    ret->fft_length_half = ret->config.fft_length / 2;
+    ret->fft_size = fftSize(ret->config.fft_length);
+    assert((1 << ret->fft_size) == ret->config.fft_length); // should be power of 2
     
     ret->fft_setup = vDSP(create_fftsetup)(ret->fft_size, kFFTRadix2);
     
     /* allocate window */
-    ret->fft_window = malloc(sizeof(REAL) * fft_length * N_TIMESCALES * 2);
-    ret->signal_windowed = malloc(sizeof(REAL) * fft_length * N_TIMESCALES * 2);
+    ret->fft_window = malloc(sizeof(REAL) * ret->config.fft_length * ret->config.num_timescales * 2);
+    ret->signal_windowed = malloc(sizeof(REAL) * ret->config.fft_length * ret->config.num_timescales * 2);
     
     /* allocate temporary and output */
     ret->fft_temporary.realp = malloc(sizeof(REAL) * ret->fft_length_half);
     ret->fft_temporary.imagp = malloc(sizeof(REAL) * ret->fft_length_half);
-    ret->fft_output.realp = malloc(sizeof(REAL) * ret->fft_length_half * N_TIMESCALES * 2);
-    ret->fft_output.imagp = malloc(sizeof(REAL) * ret->fft_length_half * N_TIMESCALES * 2);
+    ret->fft_output.realp = malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales * 2);
+    ret->fft_output.imagp = malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales * 2);
     
     /* make pointers */
     ret->p_exp = ret->fft_output;
-    ret->p_der.realp = ret->fft_output.realp + ret->fft_length_half * N_TIMESCALES;
-    ret->p_der.imagp = ret->fft_output.imagp + ret->fft_length_half * N_TIMESCALES;
+    ret->p_der.realp = ret->fft_output.realp + ret->fft_length_half * ret->config.num_timescales;
+    ret->p_der.imagp = ret->fft_output.imagp + ret->fft_length_half * ret->config.num_timescales;
     ret->p_ratio = ret->p_der;
     
     /* power array */
-    ret->power = malloc(sizeof(REAL) * ret->fft_length_half * N_TIMESCALES);
+    ret->power = malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales);
     
     /* conensus array */
     /* might be able to use singles? */
-    ret->consensus = malloc(sizeof(REAL) * ret->fft_length_half * N_TIMESCALES * N_ANGLES);
+    ret->consensus = malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales * ret->config.num_angles);
     ret->consensus_cur = malloc(sizeof(REAL) * ret->fft_length_half);
     ret->consensus_pow = malloc(sizeof(REAL) * ret->fft_length_half);
     
@@ -193,9 +271,10 @@ TYPE(CCCSetup) TYPE(createCCCSetup)(t_len fft_length, t_len fft_overlap, REAL fs
     TYPE(fillFftWindow)(ret);
     
     /* setup timescale angle structures */
-    for (i = 0; i < N_TIMESCALES; ++i) {
-        for (j = 0; j < N_ANGLES; ++j) {
-            TYPE(setupCCTimescaleAngle)(&ret->ta[i * N_ANGLES + j], ret->fft_length_half, ret->timescales[i], ret->angles[j]);
+    ret->ta = malloc(sizeof(TYPE(struct CCTimescaleAngle)) * ret->config.num_timescales * ret->config.num_angles);
+    for (i = 0; i < ret->config.num_timescales; ++i) {
+        for (j = 0; j < ret->config.num_angles; ++j) {
+            TYPE(setupCCTimescaleAngle)(ret->ta + i * ret->config.num_angles + j, ret->fft_length_half, ret->config.timescales[i], ret->config.angles[j]);
         }
     }
     
@@ -204,6 +283,10 @@ TYPE(CCCSetup) TYPE(createCCCSetup)(t_len fft_length, t_len fft_overlap, REAL fs
 
 void TYPE(destroyCCCSetup)(TYPE(CCCSetup) setup) {
     t_len i, j;
+    
+    /* free config memory */
+    free(setup->config.timescales);
+    free(setup->config.angles);
     
     /* free memory */
     free(setup->fft_window);
@@ -221,11 +304,12 @@ void TYPE(destroyCCCSetup)(TYPE(CCCSetup) setup) {
     vDSP(destroy_fftsetup)(setup->fft_setup);
     
     /* destroy timescale angle structures */
-    for (i = 0; i < N_TIMESCALES; ++i) {
-        for (j = 0; j < N_ANGLES; ++j) {
-            TYPE(destroyCCTimescaleAngle)(&setup->ta[i * N_ANGLES + j]);
+    for (i = 0; i < setup->config.num_timescales; ++i) {
+        for (j = 0; j < setup->config.num_angles; ++j) {
+            TYPE(destroyCCTimescaleAngle)(setup->ta + i * setup->config.num_angles + j);
         }
     }
+    free(setup->ta);
     
     /* free memory for whole setup */
     free(setup);
@@ -233,10 +317,10 @@ void TYPE(destroyCCCSetup)(TYPE(CCCSetup) setup) {
 
 static void TYPE(windowSamples)(const TYPE(CCCSetup) setup, const REAL *signal) {
     t_len i = 0;
-    t_len signals = 2 * N_TIMESCALES;
+    t_len signals = 2 * setup->config.num_timescales;
     
     for (i = 0; i < signals; ++i) {
-        vDSP(vmul)(signal, 1, setup->fft_window + i * setup->fft_length, 1, setup->signal_windowed + i * setup->fft_length, 1, setup->fft_length);
+        vDSP(vmul)(signal, 1, setup->fft_window + i * setup->config.fft_length, 1, setup->signal_windowed + i * setup->config.fft_length, 1, setup->config.fft_length);
     }
 }
 
@@ -247,15 +331,15 @@ struct ConsensusContourSize TYPE(cccSize)(const TYPE(CCCSetup) setup, const t_le
     ret.signal_len = signal_len;
     
     // insufficient signal?
-    if (signal_len < setup->fft_length) {
+    if (signal_len < setup->config.fft_length) {
         ret.rows = 0;
         ret.cols = 0;
         ret.bytes = 0;
         return ret;
     }
     
-    const t_len ccn = setup->fft_length / 2;
-    const t_len ccm = 1 + (signal_len - setup->fft_length) / (setup->fft_length - setup->fft_overlap);
+    const t_len ccn = setup->config.fft_length / 2;
+    const t_len ccm = 1 + (signal_len - setup->config.fft_length) / (setup->config.fft_length - setup->config.fft_overlap);
     
     ret.rows = ccn;
     ret.cols = ccm;
@@ -267,6 +351,7 @@ struct ConsensusContourSize TYPE(cccSize)(const TYPE(CCCSetup) setup, const t_le
 /* signal must be setup->fft_length long */
 static void TYPE(buildColumn)(const TYPE(CCCSetup) setup, const REAL *signal, REAL *consensus_contour) {
     t_len j, k;
+    t_len len;
     
 #ifdef TIMING
     clock_t begin, end;
@@ -277,41 +362,44 @@ static void TYPE(buildColumn)(const TYPE(CCCSetup) setup, const REAL *signal, RE
     TYPE(windowSamples)(setup, signal);
     
     // pack samples
-    vDSP(ctoz)((REAL_COMPLEX *)setup->signal_windowed, 2, &setup->fft_output, 1, setup->fft_length_half * N_TIMESCALES * 2);
+    vDSP(ctoz)((REAL_COMPLEX *)setup->signal_windowed, 2, &setup->fft_output, 1, setup->fft_length_half * setup->config.num_timescales * 2);
     
     // calculate
-    vDSP(fftm_zript)(setup->fft_setup, &setup->fft_output, 1, (t_stride)setup->fft_length_half, &setup->fft_temporary, setup->fft_size, N_TIMESCALES * 2, FFT_FORWARD);
+    vDSP(fftm_zript)(setup->fft_setup, &setup->fft_output, 1, (t_stride)setup->fft_length_half, &setup->fft_temporary, setup->fft_size, setup->config.num_timescales * 2, FFT_FORWARD);
+    
+    // length
+    len = setup->fft_length_half * setup->config.num_timescales;
     
     // calculate power
-    vDSP(zvabs)(&setup->fft_output, 1, setup->power, 1, setup->fft_length_half * N_TIMESCALES);
-    vDSP(vsdiv)(setup->power, 1, &TYPE(s_two), setup->power, 1, setup->fft_length_half * N_TIMESCALES);
+    vDSP(zvabs)(&setup->fft_output, 1, setup->power, 1, len);
+    vDSP(vsdiv)(setup->power, 1, &TYPE(s_two), setup->power, 1, len);
     
     // calculate ratio
-    vDSP(zvdiv)(&setup->p_exp, 1, &setup->p_der, 1, &setup->p_ratio, 1, setup->fft_length_half * N_TIMESCALES);
+    vDSP(zvdiv)(&setup->p_exp, 1, &setup->p_der, 1, &setup->p_ratio, 1, len);
     
     // calculate contours for each timescale and angle
-    for (j = 0; j < N_TIMESCALES; ++j) {
-        for (k = 0; k < N_ANGLES; ++k) {
-            TYPE(ingestCCTimescaleAngle)(&setup->ta[j * N_ANGLES + k], setup->p_ratio.realp + j * setup->fft_length_half, setup->p_ratio.imagp + j * setup->fft_length_half, setup->consensus + (j * N_ANGLES + k) * setup->fft_length_half);
+    for (j = 0; j < setup->config.num_timescales; ++j) {
+        for (k = 0; k < setup->config.num_angles; ++k) {
+            TYPE(ingestCCTimescaleAngle)(&setup->ta[j * setup->config.num_angles + k], setup->p_ratio.realp + j * setup->fft_length_half, setup->p_ratio.imagp + j * setup->fft_length_half, setup->consensus + (j * setup->config.num_angles + k) * setup->fft_length_half);
         }
     }
     
     // look for consensus
-    for (j = 0; j < (N_TIMESCALES - 1); ++j) {
-        if (setup->pow_weight) {
+    for (j = 0; j < (setup->config.num_timescales - 1); ++j) {
+        if (setup->config.pow_weight) {
             vDSP(vclr)(setup->consensus_pow, 1, setup->fft_length_half);
         }
         
-        for (k = 0; k < N_ANGLES; ++k) {
+        for (k = 0; k < setup->config.num_angles; ++k) {
             // start with consensus / angle
-            memcpy(setup->consensus_cur, setup->consensus + (j * N_ANGLES + k) * setup->fft_length_half, sizeof(REAL) * setup->fft_length_half);
+            memcpy(setup->consensus_cur, setup->consensus + (j * setup->config.num_angles + k) * setup->fft_length_half, sizeof(REAL) * setup->fft_length_half);
             // add next sigma, same angle
-            vDSP(vadd)(setup->consensus_cur, 1, setup->consensus + ((j + 1) * N_ANGLES + k) * setup->fft_length_half, 1, setup->consensus_cur, 1, setup->fft_length_half);
+            vDSP(vadd)(setup->consensus_cur, 1, setup->consensus + ((j + 1) * setup->config.num_angles + k) * setup->fft_length_half, 1, setup->consensus_cur, 1, setup->fft_length_half);
             // add same sigma, previous angle (wrap around)
-            vDSP(vadd)(setup->consensus_cur, 1, setup->consensus + (j * N_ANGLES + (0 == k ? N_ANGLES - 1 : k - 1)) * setup->fft_length_half, 1, setup->consensus_cur, 1, setup->fft_length_half);
+            vDSP(vadd)(setup->consensus_cur, 1, setup->consensus + (j * setup->config.num_angles + (0 == k ? setup->config.num_angles - 1 : k - 1)) * setup->fft_length_half, 1, setup->consensus_cur, 1, setup->fft_length_half);
             
             // add to contours
-            if (setup->pow_weight) {
+            if (setup->config.pow_weight) {
                 TYPE(addConsensusToContours)(setup->fft_length_half, setup->consensus_cur, setup->consensus_pow);
             }
             else {
@@ -319,7 +407,7 @@ static void TYPE(buildColumn)(const TYPE(CCCSetup) setup, const REAL *signal, RE
             }
         }
         
-        if (setup->pow_weight) {
+        if (setup->config.pow_weight) {
             // scale by power
             vDSP(vmul)(setup->consensus_pow, 1, setup->power + j * setup->fft_length_half, 1, setup->consensus_pow, 1, setup->fft_length_half);
             
@@ -350,7 +438,7 @@ void TYPE(cccSpectrogram)(const TYPE(CCCSetup) setup, const struct ConsensusCont
     
     /* STEP 2: spectrogram columns */
     for (i = 0; i < dim.cols; ++i) {
-        TYPE(buildColumn)(setup, signal + i * (setup->fft_length - setup->fft_overlap), consensus_contours + i * setup->fft_length_half);
+        TYPE(buildColumn)(setup, signal + i * (setup->config.fft_length - setup->config.fft_overlap), consensus_contours + i * setup->fft_length_half);
     }
 }
 
