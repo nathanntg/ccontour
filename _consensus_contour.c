@@ -76,7 +76,7 @@ void TYPE(cccConfigSetTimescales)(TYPE(CCCConfig) config, t_len num_timescales, 
     // allocate new timescales
     config->num_timescales = num_timescales;
     config->timescales = malloc(sizeof(REAL) * config->num_timescales);
-    memcpy(config->timescales, &timescales, sizeof(REAL) * config->num_timescales);
+    memcpy(config->timescales, &timescales[0], sizeof(REAL) * config->num_timescales);
 }
 
 void TYPE(cccConfigSetAngles)(TYPE(CCCConfig) config, t_len num_angles, REAL angles[]) {
@@ -86,7 +86,7 @@ void TYPE(cccConfigSetAngles)(TYPE(CCCConfig) config, t_len num_angles, REAL ang
     // allocate new timescales
     config->num_angles = num_angles;
     config->angles = malloc(sizeof(REAL) * config->num_angles);
-    memcpy(config->angles, &angles, sizeof(REAL) * config->num_angles);
+    memcpy(config->angles, &angles[0], sizeof(REAL) * config->num_angles);
 }
 
 void TYPE(destroyCCCConfig)(TYPE(CCCConfig) config) {
