@@ -126,8 +126,8 @@ static void TYPE(setupCCTimescaleAngle)(struct TYPE(CCTimescaleAngle) *ccta, con
     ccta->mu_imag = CMATH(sin)(angle);
     ccta->grad_x = 0 - CMATH(cos)(angle + (REAL)M_PI_2) / CMATH(2.0);
     ccta->grad_y = CMATH(sin)(angle + (REAL)M_PI_2) / CMATH(2.0);
-    ccta->sign_last = calloc(fft_length_half * 2, sizeof(REAL));
-    ccta->sign_cur = calloc(fft_length_half * 2, sizeof(REAL));
+    ccta->sign_last = calloc(fft_length_half, sizeof(REAL));
+    ccta->sign_cur = calloc(fft_length_half, sizeof(REAL));
 }
 
 static void TYPE(destroyCCTimescaleAngle)(struct TYPE(CCTimescaleAngle) *ccta) {
