@@ -348,6 +348,23 @@ struct ConsensusContourSize TYPE(cccSize)(const TYPE(CCCSetup) setup, const t_le
     return ret;
 }
 
+/* freqs must be at least dim.rows long, times must be at least dims.cols long */
+/* either can be NULL if not needed */
+void TYPE(cccBins)(const TYPE(CCCSetup) setup, const struct ConsensusContourSize dim, REAL *freqs, REAL *times) {
+    if (freqs) {
+        REAL f = setup->config.fs / (REAL)setup->config.fft_length;
+        for (t_len i = 0; i < dim.rows; ++i) {
+            freqs[i] = (REAL)(i + 1) * f;
+        }
+    }
+    
+    if (times) {
+        for (t_len j = 0; j < dim.cols; ++j) {
+            times[j] = (REAL)(setup->fft_length_half + j * (setup->config.fft_length - setup->config.fft_overlap)) / setup->config.fs;
+        }
+    }
+}
+
 /* signal must be setup->fft_length long */
 static void TYPE(buildColumn)(const TYPE(CCCSetup) setup, const REAL *signal, REAL *consensus_contour) {
     t_len j, k;

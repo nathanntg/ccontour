@@ -87,6 +87,14 @@ Behind the scenes, this calls `cccColumn` while moving through the signal.
 
 Note that both `cccColumn` and `cccSpectrogram` will zero out the output vector before proceeding.
 
+The library provides a helper function for calculating the frequency and time bins that correspond with the rows and columns in the spectrogram. To generate these values, use:
+
+```c
+void cccBins(const CCCSetup setup, const struct ConsensusContourSize dim, float *freqs, float *times);
+```
+
+Note that you must allocate `freqs` with sufficient space to contain `dim.rows` (i.e., `malloc(sizeof(float) * dim.rows)`) and `times` with sufficient space to contain `dim.cols` (i.e., `malloc(sizeof(float) * dim.cols)`). Either `times` or `freqs` can be NULL, if you are just interested in the values for the other parameter. Note that the returned frequency bins are in Hz; the returned time bins are in seconds and correspond with the center of the FFT window.
+
 Finally, when you are done with the setup, you can release all allocated memory by calling:
 
 ```c
@@ -106,10 +114,12 @@ compile_ccontour_mex
 Once compiled, you can run:
 
 ```matlab
-consensus_contours = ccontour(signal, fs);
+[consensus_spectrogram, f, t] = ccontour(signal, fs);
 ```
 
-Where `signal` is a 1D vector of type `single` or `double`, and `fs` is the sample rate in Hz. You can optionally pass additional configuration parameters as character value pairs. For help on all options available via the MATLAB interface, use the help function:
+Where `signal` is a 1D vector of type `single` or `double`, and `fs` is the sample rate in Hz. The function returns a consensus contour spectrogram matrix, where rows correspond with frequency bins (enumerated in optional output `f` in Hz) and where columns correspond with time bins (enumerated in optional output `t` in seconds, corresponding with the center of the bin).
+
+You can optionally pass additional configuration parameters as character value pairs. For help on all options available via the MATLAB interface, use the help function:
 
 ```matlab
 help ccontour

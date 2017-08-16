@@ -70,8 +70,7 @@ static bool isPowerOfTwo(unsigned long x) {
     return ((x != 0) && ((x & (~x + 1)) == x));
 }
 
-static mxArray *processSingle(int nrhs, const mxArray *prhs[]) {
-    mxArray *ret;
+static void processSingle(const int nlhs, mxArray *plhs[], const int nrhs, const mxArray *prhs[]) {
     void *s, *t;
     size_t sn, sm, sl;
     double fs;
@@ -204,25 +203,47 @@ static mxArray *processSingle(int nrhs, const mxArray *prhs[]) {
         mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "Signal vector must be at longer than FFT window.");
     }
     
+    /* OUTPUT 2 and 3: frequency and time bins */
+    if (1 < nlhs) {
+        void *out_freqs = NULL;
+        void *out_times = NULL;
+        
+        if (2 <= nlhs) {
+            /* allocate vector */
+            plhs[1] = mxCreateNumericMatrix((size_t)dim.rows, 1, mxSINGLE_CLASS, mxREAL);
+            
+            /* get pointer */
+            out_freqs = mxGetPr(plhs[1]);
+        }
+        
+        if (3 <= nlhs) {
+            /* allocate vector */
+            plhs[2] = mxCreateNumericMatrix(1, (size_t)dim.cols, mxSINGLE_CLASS, mxREAL);
+            
+            /* get pointer */
+            out_times = mxGetPr(plhs[2]);
+        }
+        
+        /* fill output time and frequency vectors */
+        cccBins(ccc_setup, dim, out_freqs, out_times);
+    }
+    
     /* OUTPUT 1: matrix, consensus contours */
     
     /*  set the output pointer to the output matrix */
-    ret = mxCreateNumericMatrix((size_t)dim.rows, (size_t)dim.cols, mxSINGLE_CLASS, mxREAL);
+    plhs[0] = mxCreateNumericMatrix((size_t)dim.rows, (size_t)dim.cols, mxSINGLE_CLASS, mxREAL);
     
     /*  create a C pointer to the output matrix */
-    t = mxGetPr(ret);
+    t = mxGetPr(plhs[0]);
     
     /*  call the C subroutine */
     cccSpectrogram(ccc_setup, dim, s, t);
     
     /* clean up */
     destroyCCCSetup(ccc_setup);
-    
-    return ret;
 }
 
-static mxArray *processDouble(int nrhs, const mxArray *prhs[]) {
-    mxArray *ret;
+static void processDouble(const int nlhs, mxArray *plhs[], const int nrhs, const mxArray *prhs[]) {
     void *s, *t;
     size_t sn, sm, sl;
     double fs;
@@ -355,34 +376,58 @@ static mxArray *processDouble(int nrhs, const mxArray *prhs[]) {
         mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "Signal vector must be at longer than FFT window.");
     }
     
+    /* OUTPUT 2 and 3: frequency and time bins */
+    if (1 < nlhs) {
+        void *out_freqs = NULL;
+        void *out_times = NULL;
+        
+        if (2 <= nlhs) {
+            /* allocate vector */
+            plhs[1] = mxCreateDoubleMatrix((size_t)dim.rows, 1, mxREAL);
+            
+            /* get pointer */
+            out_freqs = mxGetPr(plhs[1]);
+        }
+        
+        if (3 <= nlhs) {
+            /* allocate vector */
+            plhs[2] = mxCreateDoubleMatrix(1, (size_t)dim.cols, mxREAL);
+            
+            /* get pointer */
+            out_times = mxGetPr(plhs[2]);
+        }
+        
+        /* fill output time and frequency vectors */
+        cccBinsD(ccc_setup, dim, out_freqs, out_times);
+    }
+    
     /* OUTPUT 1: matrix, consensus contours */
     
     /*  set the output pointer to the output matrix */
-    ret = mxCreateDoubleMatrix((size_t)dim.rows, (size_t)dim.cols, mxREAL);
+    plhs[0] = mxCreateDoubleMatrix((size_t)dim.rows, (size_t)dim.cols, mxREAL);
     
     /*  create a C pointer to the output matrix */
-    t = mxGetPr(ret);
+    t = mxGetPr(plhs[0]);
     
     /*  call the C subroutine */
     cccSpectrogramD(ccc_setup, dim, s, t);
     
     /* clean up */
     destroyCCCSetupD(ccc_setup);
-    
-    return ret;
 }
 
 /* the gateway function */
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     /*  check for proper number of arguments */
     MX_TEST(nrhs >= 2, "MATLAB:ccc:invalidNumInputs", "Signal and sampling rate are required (two inputs).");
-    MX_TEST(nlhs == 1, "MATLAB:ccc:invalidNumOutputs", "Spectrogram output is required (one output).");
+    MX_TEST(nlhs >= 1, "MATLAB:ccc:invalidNumOutputs", "Spectrogram output is required (one output).");
+    MX_TEST(nlhs <= 3, "MATLAB:ccc:invalidNumOutputs", "Invalid number of outputs (supports 1-3).");
     
     if (mxIsSingle(prhs[0])) {
-        plhs[0] = processSingle(nrhs, prhs);
+        processSingle(nlhs, plhs, nrhs, prhs);
     }
     else if (mxIsDouble(prhs[0])) {
-        plhs[0] = processDouble(nrhs, prhs);
+        processDouble(nlhs, plhs, nrhs, prhs);
     }
     else {
         mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "Signal must be a single or double.");

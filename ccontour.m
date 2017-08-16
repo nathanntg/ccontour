@@ -14,6 +14,12 @@
 %   contain rows for each frequency bin and columns in accordance with the
 %   length of the signal.
 %
+%   The function has two additional optional outputs for the frequency and
+%   time bins that correspond with the spectrogram rows and columns
+%   respectively:
+%
+%   [SPECT, F, T] = CCONTOUR(...);
+%
 %   Optional parameters can be passed as string value pairs. The parameters
 %   are (in order of likelihood of use):
 %

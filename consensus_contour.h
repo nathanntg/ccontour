@@ -36,6 +36,9 @@ void destroyCCCSetup(CCCSetup setup);
 /* sizing */
 struct ConsensusContourSize cccSize(const CCCSetup setup, const unsigned long signal_len);
 
+/* info - can be easily calculated from the config, but convience */
+void cccBins(const CCCSetup setup, const struct ConsensusContourSize dim, float *freqs, float *times);
+
 /* actual algorithm */
 void cccColumn(const CCCSetup setup, const float *signal, float *contour);
 void cccSpectrogram(const CCCSetup setup, const struct ConsensusContourSize dim, const float *signal, float *consensus_contours);
@@ -60,6 +63,9 @@ void destroyCCCSetupD(CCCSetupD setup);
 
 /* sizing */
 struct ConsensusContourSize cccSizeD(const CCCSetupD setup, const unsigned long signal_len);
+
+/* info - can be easily calculated from the config, but convience */
+void cccBinsD(const CCCSetupD setup, const struct ConsensusContourSize dim, double *freqs, double *times);
 
 /* actual algorithm */
 void cccColumnD(const CCCSetupD setup, const double *signal, double *contour);
