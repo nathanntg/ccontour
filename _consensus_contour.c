@@ -9,7 +9,7 @@ static REAL TYPE(s_two) = 2.0;
 
 struct TYPE(OpaqueCCCConfig) {
     t_len fft_length;
-    t_len fft_overlap;
+    t_len fft_shift;
     
     bool pow_weight;
     
@@ -32,7 +32,7 @@ TYPE(CCCConfig) TYPE(createCCCConfig)() {
     
     // default fft parameters
     ret->fft_length = 1024;
-    ret->fft_overlap = 1005;
+    ret->fft_shift = 19;
     ret->pow_weight = true;
     ret->fs = 44100;
     
@@ -57,8 +57,8 @@ void TYPE(cccConfigSetFFTLength)(TYPE(CCCConfig) config, const t_len fft_length)
     config->fft_length = fft_length;
 }
 
-void TYPE(cccConfigSetFFTOverlap)(TYPE(CCCConfig) config, const t_len fft_overlap) {
-    config->fft_overlap = fft_overlap;
+void TYPE(cccConfigSetFFTShift)(TYPE(CCCConfig) config, const t_len fft_shift) {
+    config->fft_shift = fft_shift;
 }
 
 void TYPE(cccConfigSetWeightByPower)(TYPE(CCCConfig) config, const bool pow_weight) {
@@ -339,7 +339,7 @@ struct ConsensusContourSize TYPE(cccSizeConfig)(const TYPE(CCCConfig) config, co
     }
     
     const t_len ccn = config->fft_length / 2;
-    const t_len ccm = 1 + (signal_len - config->fft_length) / (config->fft_length - config->fft_overlap);
+    const t_len ccm = 1 + (signal_len - config->fft_length) / config->fft_shift;
     
     ret.rows = ccn;
     ret.cols = ccm;
@@ -363,7 +363,7 @@ struct ConsensusContourSize TYPE(cccSizeSetup)(const TYPE(CCCSetup) setup, const
     }
     
     const t_len ccn = setup->config.fft_length / 2;
-    const t_len ccm = 1 + (signal_len - setup->config.fft_length) / (setup->config.fft_length - setup->config.fft_overlap);
+    const t_len ccm = 1 + (signal_len - setup->config.fft_length) / setup->config.fft_shift;
     
     ret.rows = ccn;
     ret.cols = ccm;
@@ -384,7 +384,7 @@ void TYPE(cccBins)(const TYPE(CCCSetup) setup, const struct ConsensusContourSize
     
     if (times) {
         for (t_len j = 0; j < dim.cols; ++j) {
-            times[j] = (REAL)(setup->fft_length_half + j * (setup->config.fft_length - setup->config.fft_overlap)) / setup->config.fs;
+            times[j] = (REAL)(setup->fft_length_half + j * setup->config.fft_shift) / setup->config.fs;
         }
     }
 }
@@ -479,7 +479,7 @@ void TYPE(cccSpectrogram)(const TYPE(CCCSetup) setup, const struct ConsensusCont
     
     /* STEP 2: spectrogram columns */
     for (i = 0; i < dim.cols; ++i) {
-        TYPE(buildColumn)(setup, signal + i * (setup->config.fft_length - setup->config.fft_overlap), consensus_contours + i * setup->fft_length_half);
+        TYPE(buildColumn)(setup, signal + i * setup->config.fft_shift, consensus_contours + i * setup->fft_length_half);
     }
 }
 

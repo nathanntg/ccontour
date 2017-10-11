@@ -28,8 +28,8 @@
 %   This determines the number of frequency bins (rows) in the returned
 %   spectogram. This must be a power of two.
 %
-%   CCONTOUR(..., 'fft_overlap', FFT_OVERLAP) is the overlap in the signal
-%   between columns in the returned spectrogram. The default is 1005.
+%   CCONTOUR(..., 'fft_shift', FFT_OVERLAP) is the shift in the signal
+%   between columns in the returned spectrogram. The default is 19.
 %
 %   CCONTOUR(..., 'pow_weight', POW_WEIGHT) allows you to determine
 %   whether the returned image should have contours weighted by their

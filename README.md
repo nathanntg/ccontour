@@ -33,8 +33,8 @@ void cccConfigSetFFTLength(CCCConfig config, unsigned long fft_length);
 // default: 1,024
 // must be a power of 2
 
-void cccConfigSetFFTOverlap(CCCConfig config, unsigned long fft_overlap);
-// default: 1,005
+void cccConfigSetFFTShift(CCCConfig config, unsigned long fft_shift);
+// default: 19
 
 void cccConfigSetWeightByPower(CCCConfig config, bool pow_weight);
 // default: true
@@ -75,7 +75,7 @@ You can also calculate the full spectrogram for a signal in one call. The progra
 struct ConsensusContourSize dim = cccSizeSetup(const CCCSetup setup, const unsigned long signal_len);
 ```
 
-The returned `struct ConsensusContourSize` contains fields `dim.bytes` telling you how many bytes are required for the full spectrogram, as well as `dim.rows` (the number of rows based on the `fft_length` and `fft_overlap`) and the `dim.cols` (equal to `fft_length / 2`).
+The returned `struct ConsensusContourSize` contains fields `dim.bytes` telling you how many bytes are required for the full spectrogram, as well as `dim.rows` (the number of rows based on the `fft_length` and `fft_shift`) and the `dim.cols` (equal to `fft_length / 2`).
 
 Once you allocate an output vector with sufficient space (see `bytes` above), you can calculate the spectrogram all at once:
 
