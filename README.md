@@ -72,7 +72,7 @@ void cccColumn(const CCCSetup setup, const float *signal, float *contour);
 You can also calculate the full spectrogram for a signal in one call. The program provides a `struct ConsensusContourSize` type that contains size information to help in pre-allocating the output memory. To get the required dimensions, call:
 
 ```c
-struct ConsensusContourSize dim = cccSize(const CCCSetup setup, const unsigned long signal_len);
+struct ConsensusContourSize dim = cccSizeSetup(const CCCSetup setup, const unsigned long signal_len);
 ```
 
 The returned `struct ConsensusContourSize` contains fields `dim.bytes` telling you how many bytes are required for the full spectrogram, as well as `dim.rows` (the number of rows based on the `fft_length` and `fft_overlap`) and the `dim.cols` (equal to `fft_length / 2`).
