@@ -28,7 +28,7 @@ TYPE(CCCConfig) TYPE(createCCCConfig)() {
     t_len i;
     
     // allocate memory
-    TYPE(CCCConfig) ret = malloc(sizeof(struct TYPE(OpaqueCCCConfig)));
+    TYPE(CCCConfig) ret = (TYPE(struct OpaqueCCCConfig) *)malloc(sizeof(TYPE(struct OpaqueCCCConfig)));
     
     // default fft parameters
     ret->fft_length = 1024;
@@ -38,14 +38,14 @@ TYPE(CCCConfig) TYPE(createCCCConfig)() {
     
     // default timescales
     ret->num_timescales = 9;
-    ret->timescales = malloc(sizeof(REAL) * ret->num_timescales);
+    ret->timescales = (REAL *)malloc(sizeof(REAL) * ret->num_timescales);
     for (i = 0; i < ret->num_timescales; ++i) {
         ret->timescales[i] = CMATH(0.5) + CMATH(0.2) * (REAL)i;
     }
     
     // default angles
     ret->num_angles = 8;
-    ret->angles = malloc(sizeof(REAL) * ret->num_angles);
+    ret->angles = (REAL *)malloc(sizeof(REAL) * ret->num_angles);
     for (i = 0; i < ret->num_angles; ++i) {
         ret->angles[i] = (REAL)M_PI * (REAL)(2 + i) / (REAL)ret->num_angles;
     }
@@ -75,7 +75,7 @@ void TYPE(cccConfigSetTimescales)(TYPE(CCCConfig) config, const t_len num_timesc
     
     // allocate new timescales
     config->num_timescales = num_timescales;
-    config->timescales = malloc(sizeof(REAL) * config->num_timescales);
+    config->timescales = (REAL *)malloc(sizeof(REAL) * config->num_timescales);
     memcpy(config->timescales, &timescales[0], sizeof(REAL) * config->num_timescales);
 }
 
@@ -85,7 +85,7 @@ void TYPE(cccConfigSetAngles)(TYPE(CCCConfig) config, const t_len num_angles, co
     
     // allocate new timescales
     config->num_angles = num_angles;
-    config->angles = malloc(sizeof(REAL) * config->num_angles);
+    config->angles = (REAL *)malloc(sizeof(REAL) * config->num_angles);
     memcpy(config->angles, &angles[0], sizeof(REAL) * config->num_angles);
 }
 
@@ -126,8 +126,8 @@ static void TYPE(setupCCTimescaleAngle)(struct TYPE(CCTimescaleAngle) *ccta, con
     ccta->mu_imag = CMATH(sin)(angle);
     ccta->grad_x = 0 - CMATH(cos)(angle + (REAL)M_PI_2) / CMATH(2.0);
     ccta->grad_y = CMATH(sin)(angle + (REAL)M_PI_2) / CMATH(2.0);
-    ccta->sign_last = calloc(fft_length_half, sizeof(REAL));
-    ccta->sign_cur = calloc(fft_length_half, sizeof(REAL));
+    ccta->sign_last = (REAL *)calloc(fft_length_half, sizeof(REAL));
+    ccta->sign_cur = (REAL *)calloc(fft_length_half, sizeof(REAL));
 }
 
 static void TYPE(destroyCCTimescaleAngle)(struct TYPE(CCTimescaleAngle) *ccta) {
@@ -228,12 +228,12 @@ TYPE(CCCSetup) TYPE(createCCCSetup)(const TYPE(CCCConfig) config) {
     t_len i, j;
     
     /* allocate memory */
-    TYPE(CCCSetup) ret = malloc(sizeof(struct TYPE(OpaqueCCCSetup)));
+    TYPE(CCCSetup) ret = (TYPE(struct OpaqueCCCSetup) *)malloc(sizeof(TYPE(struct OpaqueCCCSetup)));
     
     /* store configuration, and copy pointers */
     memcpy(&ret->config, config, sizeof(TYPE(struct OpaqueCCCConfig)));
-    ret->config.timescales = allocAndCopy(ret->config.timescales, sizeof(REAL) * ret->config.num_timescales);
-    ret->config.angles = allocAndCopy(ret->config.angles, sizeof(REAL) * ret->config.num_angles);
+    ret->config.timescales = (REAL *)allocAndCopy(ret->config.timescales, sizeof(REAL) * ret->config.num_timescales);
+    ret->config.angles = (REAL *)allocAndCopy(ret->config.angles, sizeof(REAL) * ret->config.num_angles);
     
     /* STEP 1: spectrogram, build windows and fft */
     ret->fft_length_half = ret->config.fft_length / 2;
@@ -243,14 +243,14 @@ TYPE(CCCSetup) TYPE(createCCCSetup)(const TYPE(CCCConfig) config) {
     ret->fft_setup = vDSP(create_fftsetup)(ret->fft_size, kFFTRadix2);
     
     /* allocate window */
-    ret->fft_window = malloc(sizeof(REAL) * ret->config.fft_length * ret->config.num_timescales * 2);
-    ret->signal_windowed = malloc(sizeof(REAL) * ret->config.fft_length * ret->config.num_timescales * 2);
+    ret->fft_window = (REAL *)malloc(sizeof(REAL) * ret->config.fft_length * ret->config.num_timescales * 2);
+    ret->signal_windowed = (REAL *)malloc(sizeof(REAL) * ret->config.fft_length * ret->config.num_timescales * 2);
     
     /* allocate temporary and output */
-    ret->fft_temporary.realp = malloc(sizeof(REAL) * ret->fft_length_half);
-    ret->fft_temporary.imagp = malloc(sizeof(REAL) * ret->fft_length_half);
-    ret->fft_output.realp = malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales * 2);
-    ret->fft_output.imagp = malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales * 2);
+    ret->fft_temporary.realp = (REAL *)malloc(sizeof(REAL) * ret->fft_length_half);
+    ret->fft_temporary.imagp = (REAL *)malloc(sizeof(REAL) * ret->fft_length_half);
+    ret->fft_output.realp = (REAL *)malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales * 2);
+    ret->fft_output.imagp = (REAL *)malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales * 2);
     
     /* make pointers */
     ret->p_exp = ret->fft_output;
@@ -259,19 +259,19 @@ TYPE(CCCSetup) TYPE(createCCCSetup)(const TYPE(CCCConfig) config) {
     ret->p_ratio = ret->p_der;
     
     /* power array */
-    ret->power = malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales);
+    ret->power = (REAL *)malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales);
     
     /* conensus array */
     /* might be able to use singles? */
-    ret->consensus = malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales * ret->config.num_angles);
-    ret->consensus_cur = malloc(sizeof(REAL) * ret->fft_length_half);
-    ret->consensus_pow = malloc(sizeof(REAL) * ret->fft_length_half);
+    ret->consensus = (REAL *)malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales * ret->config.num_angles);
+    ret->consensus_cur = (REAL *)malloc(sizeof(REAL) * ret->fft_length_half);
+    ret->consensus_pow = (REAL *)malloc(sizeof(REAL) * ret->fft_length_half);
     
     /* fill window */
     TYPE(fillFftWindow)(ret);
     
     /* setup timescale angle structures */
-    ret->ta = malloc(sizeof(TYPE(struct CCTimescaleAngle)) * ret->config.num_timescales * ret->config.num_angles);
+    ret->ta = (TYPE(struct CCTimescaleAngle) *)malloc(sizeof(TYPE(struct CCTimescaleAngle)) * ret->config.num_timescales * ret->config.num_angles);
     for (i = 0; i < ret->config.num_timescales; ++i) {
         for (j = 0; j < ret->config.num_angles; ++j) {
             TYPE(setupCCTimescaleAngle)(ret->ta + i * ret->config.num_angles + j, ret->fft_length_half, ret->config.timescales[i], ret->config.angles[j]);
@@ -324,7 +324,31 @@ static void TYPE(windowSamples)(const TYPE(CCCSetup) setup, const REAL *signal) 
     }
 }
 
-struct ConsensusContourSize TYPE(cccSize)(const TYPE(CCCSetup) setup, const t_len signal_len) {
+struct ConsensusContourSize TYPE(cccSizeConfig)(const TYPE(CCCConfig) config, const t_len signal_len) {
+    struct ConsensusContourSize ret;
+    
+    // store signal length
+    ret.signal_len = signal_len;
+    
+    // insufficient signal?
+    if (signal_len < config->fft_length) {
+        ret.rows = 0;
+        ret.cols = 0;
+        ret.bytes = 0;
+        return ret;
+    }
+    
+    const t_len ccn = config->fft_length / 2;
+    const t_len ccm = 1 + (signal_len - config->fft_length) / (config->fft_length - config->fft_overlap);
+    
+    ret.rows = ccn;
+    ret.cols = ccm;
+    ret.bytes = sizeof(REAL) * ccn * ccm;
+    
+    return ret;
+}
+
+struct ConsensusContourSize TYPE(cccSizeSetup)(const TYPE(CCCSetup) setup, const t_len signal_len) {
     struct ConsensusContourSize ret;
     
     // store signal length

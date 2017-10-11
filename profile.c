@@ -24,8 +24,8 @@ static void profileSingle(const int iter) {
     CCCSetup ccc_setup = createCCCSetup(ccc_config);
     destroyCCCConfig(ccc_config);
     
-    const struct ConsensusContourSize dim = cccSize(ccc_setup, SIGNAL_LEN);
-    out = calloc(dim.rows * dim.cols, sizeof(float));
+    const struct ConsensusContourSize dim = cccSizeSetup(ccc_setup, SIGNAL_LEN);
+    out = (float *)calloc(dim.rows * dim.cols, sizeof(float));
     
     for (i = 0; i < iter; ++i) {
         for (j = 0; j < SIGNAL_LEN; ++j) {
@@ -60,8 +60,8 @@ static void profileDouble(const int iter) {
     CCCSetupD ccc_setup = createCCCSetupD(ccc_config);
     destroyCCCConfigD(ccc_config);
     
-    const struct ConsensusContourSize dim = cccSizeD(ccc_setup, SIGNAL_LEN);
-    out = calloc(dim.rows * dim.cols, sizeof(double));
+    const struct ConsensusContourSize dim = cccSizeSetupD(ccc_setup, SIGNAL_LEN);
+    out = (double *)calloc(dim.rows * dim.cols, sizeof(double));
     
     for (i = 0; i < iter; ++i) {
         for (j = 0; j < SIGNAL_LEN; ++j) {

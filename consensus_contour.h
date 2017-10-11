@@ -34,7 +34,8 @@ CCCSetup createCCCSetup(const CCCConfig config);
 void destroyCCCSetup(CCCSetup setup);
 
 /* sizing */
-struct ConsensusContourSize cccSize(const CCCSetup setup, const unsigned long signal_len);
+struct ConsensusContourSize cccSizeConfig(const CCCConfig config, const unsigned long signal_len);
+struct ConsensusContourSize cccSizeSetup(const CCCSetup setup, const unsigned long signal_len);
 
 /* info - can be easily calculated from the config, but convience */
 void cccBins(const CCCSetup setup, const struct ConsensusContourSize dim, float *freqs, float *times);
@@ -62,7 +63,8 @@ CCCSetupD createCCCSetupD(const CCCConfigD config);
 void destroyCCCSetupD(CCCSetupD setup);
 
 /* sizing */
-struct ConsensusContourSize cccSizeD(const CCCSetupD setup, const unsigned long signal_len);
+struct ConsensusContourSize cccSizeConfigD(const CCCConfigD config, const unsigned long signal_len);
+struct ConsensusContourSize cccSizeSetupD(const CCCSetupD setup, const unsigned long signal_len);
 
 /* info - can be easily calculated from the config, but convience */
 void cccBinsD(const CCCSetupD setup, const struct ConsensusContourSize dim, double *freqs, double *times);
