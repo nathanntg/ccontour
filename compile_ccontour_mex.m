@@ -1,25 +1,18 @@
 function compile_ccontour_mex(varargin)
-%COMPILE_DT_MEX Compile MEX versions of dynamic time warping functions
-%   In addition to MATLAB versions of the dynamic time warping code, this
-%   repository offers MEX versions, which are much preferred. The MEX
-%   versions offer close to a 100x speed benefit and are designed to use
-%   substantially less memory.
+%COMPILE_CCONTOUR_MEX Compile MEX versions of dynamic time warping functions
+%   TODO: write me
 %
-%   The repository includes Mac versions of the MEX files already compiled,
-%   but this function allows compiling the MEX files for other platforms.
-%
-%   If you see warnings about non-MEX implementations when running code
-%   from this repository, call this function once to compile the MEX
-%   functions.
+%   The repository offers pre-compiled (binary) MEX files but this function
+%   allows recompiling the MEX files.
 %
 %   No parameters are required, but you can optionally provide parameters:
 %
-%   COMPILE_DT_MEX('debug', true) turns off optimizations, adds debugging
-%   symbols to the binaries and turns on verbose compilation, all to help
-%   debug issues with the MEX files.
+%   COMPILE_CCONTOUR_MEX('debug', true) turns off optimizations, adds 
+%   debugging symbols to the binaries and turns on verbose compilation, all
+%   to help debug issues with the MEX files.
 %
-%   COMPILE_DT_MEX('warnings', true) turns on all warnings during compile
-%   time (only tested with Clang compiler).
+%   COMPILE_CCONTOUR_MEX('warnings', true) turns on all warnings during 
+%   compile time (only tested with Clang compiler).
 
 %% parameters
 debug = false;

@@ -197,7 +197,7 @@ static void processSingle(const int nlhs, mxArray *plhs[], const int nrhs, const
     destroyCCCConfig(ccc_config);
     
     /* figure out contour size */
-    const struct ConsensusContourSize dim = cccSize(ccc_setup, (unsigned long)sl);
+    const struct ConsensusContourSize dim = cccSizeSetup(ccc_setup, (unsigned long)sl);
     if (dim.rows == 0) {
         destroyCCCSetup(ccc_setup);
         mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "Signal vector must be at longer than FFT window.");
@@ -370,7 +370,7 @@ static void processDouble(const int nlhs, mxArray *plhs[], const int nrhs, const
     destroyCCCConfigD(ccc_config);
     
     /* figure out contour size */
-    const struct ConsensusContourSize dim = cccSizeD(ccc_setup, (unsigned long)sl);
+    const struct ConsensusContourSize dim = cccSizeSetupD(ccc_setup, (unsigned long)sl);
     if (dim.rows == 0) {
         destroyCCCSetupD(ccc_setup);
         mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "Signal vector must be at longer than FFT window.");
