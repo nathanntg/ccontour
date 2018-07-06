@@ -93,7 +93,7 @@ static void processSingle(const int nlhs, mxArray *plhs[], const int nrhs, const
     
     /* ARGUMENT 3+: configuration */
     unsigned long fft_length = 1024;
-    unsigned long fft_overlap = 1005;
+    unsigned long fft_shift = 19;
     bool pow_weight = true;
     unsigned long num_timescales = 0;
     float *timescales = NULL;
@@ -121,14 +121,23 @@ static void processSingle(const int nlhs, mxArray *plhs[], const int nrhs, const
             
             fft_length = tmp;
         }
-        else if (0 == strcmp(nm, "fft_overlap")) {
+        else if (0 == strcmp(nm, "fft_shift")) {
             if (!testScalar(prhs[i + 1])) {
                 mxFree(nm);
-                mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "FFT overlap must be a scalar.");
+                mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "FFT shift must be a scalar.");
             }
             
             double v = mxGetScalar(prhs[i + 1]);
-            fft_overlap = (unsigned long)v;
+            if (v < 1) {
+                mxFree(nm);
+                mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "FFT shift must be greater than or equal to 1.");
+            }
+            
+            fft_shift = (unsigned long)v;
+        }
+        else if (0 == strcmp(nm, "fft_overlap")) {
+            mxFree(nm);
+            mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "The \"fft_overlap\" parameter is no longer supported. Instead, supply \"fft_shift\".");
         }
         else if (0 == strcmp(nm, "pow_weight")) {
             if (!mxIsLogicalScalar(prhs[i + 1])) {
@@ -173,17 +182,12 @@ static void processSingle(const int nlhs, mxArray *plhs[], const int nrhs, const
         mxFree(nm);
     }
     
-    // validate
-    if (fft_overlap >= fft_length) {
-        mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "FFT overlap must be less than the FFT length.");
-    }
-    
     /* PREPARE */
     /* configuration */
     CCCConfig ccc_config = createCCCConfig();
     cccConfigSetSampleRate(ccc_config, (float)fs);
     cccConfigSetFFTLength(ccc_config, fft_length);
-    cccConfigSetFFTOverlap(ccc_config, fft_overlap);
+    cccConfigSetFFTShift(ccc_config, fft_shift);
     cccConfigSetWeightByPower(ccc_config, pow_weight);
     if (0 < num_timescales) {
         cccConfigSetTimescales(ccc_config, num_timescales, timescales);
@@ -266,7 +270,7 @@ static void processDouble(const int nlhs, mxArray *plhs[], const int nrhs, const
     
     /* ARGUMENT 3+: configuration */
     unsigned long fft_length = 1024;
-    unsigned long fft_overlap = 1005;
+    unsigned long fft_shift = 19;
     bool pow_weight = true;
     unsigned long num_timescales = 0;
     double *timescales = NULL;
@@ -294,14 +298,23 @@ static void processDouble(const int nlhs, mxArray *plhs[], const int nrhs, const
             
             fft_length = tmp;
         }
-        else if (0 == strcmp(nm, "fft_overlap")) {
+        else if (0 == strcmp(nm, "fft_shift")) {
             if (!testScalar(prhs[i + 1])) {
                 mxFree(nm);
-                mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "FFT overlap must be a scalar.");
+                mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "FFT shift must be a scalar.");
             }
             
             double v = mxGetScalar(prhs[i + 1]);
-            fft_overlap = (unsigned long)v;
+            if (v < 1) {
+                mxFree(nm);
+                mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "FFT shift must be greater than or equal to 1.");
+            }
+            
+            fft_shift = (unsigned long)v;
+        }
+        else if (0 == strcmp(nm, "fft_overlap")) {
+            mxFree(nm);
+            mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "The \"fft_overlap\" parameter is no longer supported. Instead, supply \"fft_shift\".");
         }
         else if (0 == strcmp(nm, "pow_weight")) {
             if (!mxIsLogicalScalar(prhs[i + 1])) {
@@ -346,17 +359,12 @@ static void processDouble(const int nlhs, mxArray *plhs[], const int nrhs, const
         mxFree(nm);
     }
     
-    // validate
-    if (fft_overlap >= fft_length) {
-        mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "FFT overlap must be less than the FFT length.");
-    }
-    
     /* PREPARE */
     /* configuration */
     CCCConfigD ccc_config = createCCCConfigD();
     cccConfigSetSampleRateD(ccc_config, fs);
     cccConfigSetFFTLengthD(ccc_config, fft_length);
-    cccConfigSetFFTOverlapD(ccc_config, fft_overlap);
+    cccConfigSetFFTShiftD(ccc_config, fft_shift);
     cccConfigSetWeightByPowerD(ccc_config, pow_weight);
     if (0 < num_timescales) {
         cccConfigSetTimescalesD(ccc_config, num_timescales, timescales);
