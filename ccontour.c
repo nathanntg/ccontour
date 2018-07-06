@@ -128,7 +128,16 @@ static void processSingle(const int nlhs, mxArray *plhs[], const int nrhs, const
             }
             
             double v = mxGetScalar(prhs[i + 1]);
+            if (v < 1) {
+                mxFree(nm);
+                mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "FFT shift must be greater than or equal to 1.");
+            }
+            
             fft_shift = (unsigned long)v;
+        }
+        else if (0 == strcmp(nm, "fft_overlap")) {
+            mxFree(nm);
+            mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "The \"fft_overlap\" parameter is no longer supported. Instead, supply \"fft_shift\".");
         }
         else if (0 == strcmp(nm, "pow_weight")) {
             if (!mxIsLogicalScalar(prhs[i + 1])) {
@@ -296,7 +305,16 @@ static void processDouble(const int nlhs, mxArray *plhs[], const int nrhs, const
             }
             
             double v = mxGetScalar(prhs[i + 1]);
+            if (v < 1) {
+                mxFree(nm);
+                mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "FFT shift must be greater than or equal to 1.");
+            }
+            
             fft_shift = (unsigned long)v;
+        }
+        else if (0 == strcmp(nm, "fft_overlap")) {
+            mxFree(nm);
+            mexErrMsgIdAndTxt("MATLAB:ccc:invalidInput", "The \"fft_overlap\" parameter is no longer supported. Instead, supply \"fft_shift\".");
         }
         else if (0 == strcmp(nm, "pow_weight")) {
             if (!mxIsLogicalScalar(prhs[i + 1])) {
