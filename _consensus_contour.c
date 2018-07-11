@@ -378,7 +378,7 @@ void TYPE(cccBins)(const TYPE(CCCSetup) setup, const struct ConsensusContourSize
     if (freqs) {
         REAL f = setup->config.fs / (REAL)setup->config.fft_length;
         for (t_len i = 0; i < dim.rows; ++i) {
-            freqs[i] = (REAL)(i + 1) * f;
+            freqs[i] = (REAL)i * f;
         }
     }
     
@@ -410,6 +410,12 @@ static void TYPE(buildColumn)(const TYPE(CCCSetup) setup, const REAL *signal, RE
     
     // length
     len = setup->fft_length_half * setup->config.num_timescales;
+    
+    // temporary fix for FFT issue: discard imaginary value in bin 0 (corresponds with
+    // real value in last bin, `half_length + 1`)
+    for (j = 0; j < setup->config.num_timescales * 2; ++j) {
+        setup->fft_output.imagp[j * setup->fft_length_half] = 0;
+    }
     
     // calculate power
     vDSP(zvabs)(&setup->fft_output, 1, setup->power, 1, len);
