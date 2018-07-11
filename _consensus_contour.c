@@ -126,8 +126,8 @@ static void TYPE(setupCCTimescaleAngle)(struct TYPE(CCTimescaleAngle) *ccta, con
     ccta->mu_imag = CMATH(sin)(angle);
     ccta->grad_x = 0 - CMATH(cos)(angle + (REAL)M_PI_2) / CMATH(2.0);
     ccta->grad_y = CMATH(sin)(angle + (REAL)M_PI_2) / CMATH(2.0);
-    ccta->sign_last = (REAL *)calloc(fft_length_half, sizeof(REAL));
-    ccta->sign_cur = (REAL *)calloc(fft_length_half, sizeof(REAL));
+    ccta->sign_last = (REAL *)calloc(1 + fft_length_half, sizeof(REAL));
+    ccta->sign_cur = (REAL *)calloc(1 + fft_length_half, sizeof(REAL));
 }
 
 static void TYPE(destroyCCTimescaleAngle)(struct TYPE(CCTimescaleAngle) *ccta) {
@@ -148,15 +148,15 @@ static void TYPE(ingestCCTimescaleAngle)(struct TYPE(CCTimescaleAngle) *ccta, co
     ccta->sign_cur = cur;
     
     // calculate the imaginary portion of the angle (FOIL)
-    vDSP(vsmsma)(real, 1, &ccta->mu_imag, imag, 1, &ccta->mu_real, cur, 1, ccta->fft_length_half);
-    vDSP(vlim)(cur, 1, &TYPE(s_zero), &TYPE(s_one), cur, 1, ccta->fft_length_half); // limit to +1 / -1
+    vDSP(vsmsma)(real, 1, &ccta->mu_imag, imag, 1, &ccta->mu_real, cur, 1, 1 + ccta->fft_length_half);
+    vDSP(vlim)(cur, 1, &TYPE(s_zero), &TYPE(s_one), cur, 1, 1 + ccta->fft_length_half); // limit to +1 / -1
     
     // special case: i = 0
     gx = (cur[i] - last[i]) * ccta->grad_x;
     out[i] = (gx > CMATH(0.001) ? CMATH(1.0) : CMATH(0.0));
     
     // iterate
-    for (i = 1; i < ccta->fft_length_half; ++i) {
+    for (i = 1; i < (1 + ccta->fft_length_half); ++i) {
         // adjust by angle
         // TODO: optimize via switch case and
         gx = (cur[i] - last[i]) * ccta->grad_x;
@@ -167,7 +167,7 @@ static void TYPE(ingestCCTimescaleAngle)(struct TYPE(CCTimescaleAngle) *ccta, co
 }
 
 static void TYPE(addConsensusToContours)(const t_len fft_length_half, const REAL *consensus, REAL *consensus_contours) {
-    for (t_len i = 0; i < fft_length_half; ++i) {
+    for (t_len i = 0; i < (1 + fft_length_half); ++i) {
         if (consensus[i] > CMATH(1.5)) {
             consensus_contours[i] += CMATH(1.0);
         }
@@ -259,13 +259,13 @@ TYPE(CCCSetup) TYPE(createCCCSetup)(const TYPE(CCCConfig) config) {
     ret->p_ratio = ret->p_der;
     
     /* power array */
-    ret->power = (REAL *)malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales);
+    ret->power = (REAL *)malloc(sizeof(REAL) * (1 + ret->fft_length_half) * ret->config.num_timescales);
     
     /* conensus array */
     /* might be able to use singles? */
-    ret->consensus = (REAL *)malloc(sizeof(REAL) * ret->fft_length_half * ret->config.num_timescales * ret->config.num_angles);
-    ret->consensus_cur = (REAL *)malloc(sizeof(REAL) * ret->fft_length_half);
-    ret->consensus_pow = (REAL *)malloc(sizeof(REAL) * ret->fft_length_half);
+    ret->consensus = (REAL *)malloc(sizeof(REAL) * (1 + ret->fft_length_half) * ret->config.num_timescales * ret->config.num_angles);
+    ret->consensus_cur = (REAL *)malloc(sizeof(REAL) * (1 + ret->fft_length_half));
+    ret->consensus_pow = (REAL *)malloc(sizeof(REAL) * (1 + ret->fft_length_half);
     
     /* fill window */
     TYPE(fillFftWindow)(ret);
@@ -338,7 +338,7 @@ struct ConsensusContourSize TYPE(cccSizeConfig)(const TYPE(CCCConfig) config, co
         return ret;
     }
     
-    const t_len ccn = config->fft_length / 2;
+    const t_len ccn = 1 + config->fft_length / 2;
     const t_len ccm = 1 + (signal_len - config->fft_length) / config->fft_shift;
     
     ret.rows = ccn;
@@ -362,7 +362,7 @@ struct ConsensusContourSize TYPE(cccSizeSetup)(const TYPE(CCCSetup) setup, const
         return ret;
     }
     
-    const t_len ccn = setup->config.fft_length / 2;
+    const t_len ccn = 1 + setup->config.fft_length / 2;
     const t_len ccm = 1 + (signal_len - setup->config.fft_length) / setup->config.fft_shift;
     
     ret.rows = ccn;
@@ -378,7 +378,7 @@ void TYPE(cccBins)(const TYPE(CCCSetup) setup, const struct ConsensusContourSize
     if (freqs) {
         REAL f = setup->config.fs / (REAL)setup->config.fft_length;
         for (t_len i = 0; i < dim.rows; ++i) {
-            freqs[i] = (REAL)(i + 1) * f;
+            freqs[i] = (REAL)i * f;
         }
     }
     
@@ -408,15 +408,29 @@ static void TYPE(buildColumn)(const TYPE(CCCSetup) setup, const REAL *signal, RE
     // calculate
     vDSP(fftm_zript)(setup->fft_setup, &setup->fft_output, 1, (t_stride)setup->fft_length_half, &setup->fft_temporary, setup->fft_size, setup->config.num_timescales * 2, FFT_FORWARD);
     
-    // length
-    len = setup->fft_length_half * setup->config.num_timescales;
+    // move and zero imaginary first term (term 0 and term _fft_length_half are both real, and so get
+    // packed into the same term)
+    for (j = 0; j < setup->config.num_timescales; ++j) {
+        // power at the start of the j-th timescale
+        REAL *power = setup->power + j * (1 + setup->fft_length_half);
+        REAL_SPLIT_COMPLEX fft_output;
+        fft_output.realp = setup->fft_output.realp + j * setup->fft_length_half;
+        fft_output.imagp = setup->fft_output.imagp + j * setup->fft_length_half;
+        
+        // move and zero imaginary first term (term 0 and fft_length_half are both real, and so
+        // get packed into the same term)
+        power[fft_length_half] = CMATH(abs)(fft_output.imagp[0]);
+        fft_output.imagp[0] = s_zero;
+        
+        // calculate power
+        vDSP(zvabs)(&fft_output, 1, power, 1, setup->fft_length_half);
+    }
     
-    // calculate power
-    vDSP(zvabs)(&setup->fft_output, 1, setup->power, 1, len);
-    vDSP(vsdiv)(setup->power, 1, &TYPE(s_two), setup->power, 1, len);
+    // normalize
+    vDSP(vsdiv)(setup->power, 1, &TYPE(s_two), setup->power, 1, (1 + setup->fft_length_half) * setup->config.num_timescales);
     
     // calculate ratio
-    vDSP(zvdiv)(&setup->p_exp, 1, &setup->p_der, 1, &setup->p_ratio, 1, len);
+    vDSP(zvdiv)(&setup->p_exp, 1, &setup->p_der, 1, &setup->p_ratio, 1, setup->fft_length_half * setup->config.num_timescales);
     
     // calculate contours for each timescale and angle
     for (j = 0; j < setup->config.num_timescales; ++j) {
